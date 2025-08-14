@@ -1,36 +1,11 @@
-# BlackBox System Requirements
-# 블랙박스 시스템 의존성 라이브러리 목록
-
-# Computer Vision & AI
+# 핵심 필수 라이브러리
 opencv-python>=4.8.0
 numpy>=1.24.0
-
-# YouTube 처리 (하이브리드 블랙박스 필수)
 yt-dlp>=2024.1.0
-
-# Text-to-Speech (TTS 시스템)
 pyttsx3>=2.90
-gtts>=2.3.0
-pygame>=2.5.0
-
-# System Monitoring
 psutil>=5.9.0
-
-# HTTP 요청 (YouTube URL 처리용)
 requests>=2.31.0
 
-# Standard Libraries (Python 기본 포함)
-# json, logging, os, signal, sys, time, datetime
-# collections, argparse, queue, threading, hashlib
-# tempfile, subprocess, math
-
-# Optional: GPU 가속 지원
-# opencv-contrib-python>=4.8.0
-
-# Optional: 고급 오디오 처리
-# vlc-python>=3.0.0
-# pydub>=0.25.0
-
-# Development Tools (선택사항)
-# matplotlib>=3.7.0
-# pillow>=10.0.0
+# 선택사항 (기능별로 필요시 설치)
+pygame>=2.5.0
+gtts>=2.3.0
