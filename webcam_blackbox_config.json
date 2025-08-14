@@ -1,0 +1,44 @@
+{
+  "camera": {
+    "device_id": 0,
+    "width": 1280,
+    "height": 720,
+    "fps": 30,
+    "buffer_size": 1
+  },
+  "recording": {
+    "output_dir": "webcam_output",
+    "segment_duration": 600,
+    "codec": "mp4v",
+    "quality": 0.8
+  },
+  "model": {
+    "weights_path": "yolov4-tiny.weights",
+    "config_path": "yolov4-tiny.cfg",
+    "classes_path": "coco.names",
+    "input_size": 416
+  },
+  "detection": {
+    "confidence_threshold": 0.5,
+    "nms_threshold": 0.4,
+    "traffic_light_confidence_threshold": 0.3,
+    "detection_interval": 1,
+    "traffic_light_only_interval": 1
+  },
+  "traffic_light": {
+    "enable_detection": true,
+    "stability_frames": 2,
+    "log_changes": true
+  },
+  "tracking": {
+    "iou_threshold": 0.3,
+    "max_lost_frames": 5,
+    "movement_threshold": 2
+  },
+  "system": {
+    "cleanup_interval": 3600,
+    "max_storage_gb": 50,
+    "cpu_threshold": 80,
+    "memory_threshold": 80
+  }
+}
