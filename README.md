@@ -4,6 +4,10 @@
 
 <img src="https://github.com/user-attachments/assets/95b3667e-6938-45e2-a393-8460dc290677" width="350"/>
 
+<img width="1375" height="635" alt="static" src="https://github.com/user-attachments/assets/1942ccea-6a6c-4109-a07f-8d13d3842640" />
+<img width="1395" height="784" alt="moving" src="https://github.com/user-attachments/assets/8998dae5-9b65-415e-8f68-ea4b07dda6a7" />
+
+
 <div align="center">
   
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
