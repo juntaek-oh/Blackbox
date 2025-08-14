@@ -2,10 +2,7 @@
 
 ![GIF 1](https://github.com/user-attachments/assets/55caa8fc-b178-4640-9e15-2ad3bab294ad) ![GIF 2](https://github.com/user-attachments/assets/f832f5c1-f685-4ade-97a5-10bc61b4dd2e)
 
-
-<img width="1375" height="635" alt="static" src="https://github.com/user-attachments/assets/1942ccea-6a6c-4109-a07f-8d13d3842640" />
-<img width="1395" height="784" alt="moving" src="https://github.com/user-attachments/assets/8998dae5-9b65-415e-8f68-ea4b07dda6a7" />
-
+![GIF 3](https://github.com/user-attachments/assets/94f06c32-7f0b-455c-80cd-50aec259a48d) ![GIF 4](https://github.com/user-attachments/assets/dd0ed0d7-2f6c-44e8-a775-a90fcd987fd3)
 
 <div align="center">
   
