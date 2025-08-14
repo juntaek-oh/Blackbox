@@ -1,0 +1,40 @@
+# BlackBox System Requirements
+# 블랙박스 시스템 의존성 라이브러리 목록
+
+# Computer Vision & AI
+opencv-python>=4.8.0
+numpy>=1.24.0
+
+# Text-to-Speech
+gtts>=2.3.0
+pygame>=2.5.0
+
+# System Monitoring
+psutil>=5.9.0
+
+# Standard Libraries (included in Python by default)
+# json
+# logging
+# os
+# signal
+# sys
+# time
+# datetime
+# collections
+# argparse
+# queue
+# threading
+# hashlib
+# concurrent.futures
+
+# Optional: Deep Learning Model Support
+# If you want to use GPU acceleration or other backends:
+# opencv-contrib-python>=4.8.0
+
+# Optional: Advanced Audio Processing
+# vlc-python>=3.0.0  # Alternative audio player
+# pydub>=0.25.0      # Audio processing
+
+# Development/Debug Tools (optional)
+# matplotlib>=3.7.0  # For visualization during development
+# pillow>=10.0.0     # Image processing utilities

@@ -1,0 +1,32 @@
+{
+  "youtube": {
+    "url": "https://www.youtube.com/watch?v=OoHzud9L48s",
+    "quality": "best",
+    "output_dir": "output"
+  },
+  "model": {
+    "weights_path": "yolov4-tiny.weights",
+    "config_path": "yolov4-tiny.cfg",
+    "classes_path": "coco.names",
+    "input_size": 416
+  },
+  "detection": {
+    "confidence_threshold": 0.5,
+    "nms_threshold": 0.4,
+    "traffic_light_confidence_threshold": 0.3,
+    "detection_interval": 2
+  },
+  "traffic_light": {
+    "enable_detection": true,
+    "stability_frames": 2
+  },
+  "tracking": {
+    "iou_threshold": 0.25,
+    "max_lost_frames": 8,
+    "movement_threshold": 2
+  },
+  "display": {
+    "show_preview": true,
+    "auto_size": true
+  }
+}
