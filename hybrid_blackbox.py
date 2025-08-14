@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
-하이브리드 블랙박스 시스템 v4.3 - 최종 최적화판
+하이브리드 블랙박스 시스템 v4.4 - 신호등 오탐지 해결 + mp4_output 저장 추가
 YouTube URL + Downloads 폴더 통합 + 모드별 최적화 UI + 빠른 출발 감지
 """
 
@@ -68,6 +67,74 @@ class HybridVideoManager:
         self.display_width = 1280
         self.display_height = 720
 
+        # ✅ mp4_output 저장 관련 추가
+        self.output_dir = "mp4_output"
+        self.video_writer = None
+        self.recording_enabled = True
+        self.create_output_directory()
+
+    def create_output_directory(self):
+        """mp4_output 디렉터리 생성"""
+        try:
+            os.makedirs(self.output_dir, exist_ok=True)
+            self.logger.info(f"✅ 출력 디렉터리 생성: {os.path.abspath(self.output_dir)}")
+        except Exception as e:
+            self.logger.error(f"출력 디렉터리 생성 실패: {e}")
+
+    def init_video_writer(self, frame_shape):
+        """VideoWriter 초기화 (mp4_output 폴더에 저장)"""
+        if not self.recording_enabled:
+            return True
+
+        try:
+            # 현재 시간으로 파일명 생성
+            current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+            output_filename = os.path.join(self.output_dir, f"hybrid_blackbox_{current_time}.mp4")
+
+            height, width = frame_shape[:2]
+            fps = self.config.get('video_mode', {}).get('fps', 30) or 30
+
+            # VideoWriter 생성
+            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+
+            # 크기가 홀수인 경우 짝수로 맞춤 (codec 호환성)
+            if width % 2 != 0:
+                width -= 1
+            if height % 2 != 0:
+                height -= 1
+
+            self.video_writer = cv2.VideoWriter(output_filename, fourcc, fps, (width, height))
+
+            if not self.video_writer.isOpened():
+                self.logger.error("❌ VideoWriter 초기화 실패")
+                return False
+
+            self.logger.info(f"✅ 영상 저장 시작: {os.path.basename(output_filename)} ({width}x{height}@{fps}fps)")
+            return True
+
+        except Exception as e:
+            self.logger.error(f"VideoWriter 초기화 실패: {e}")
+            return False
+
+    def write_frame(self, frame):
+        """프레임을 mp4_output에 저장"""
+        if not self.recording_enabled or not self.video_writer:
+            return
+
+        try:
+            # 프레임 크기를 짝수로 맞춤
+            h, w = frame.shape[:2]
+            if w % 2 != 0:
+                frame = frame[:, :-1]
+                w -= 1
+            if h % 2 != 0:
+                frame = frame[:-1, :]
+                h -= 1
+
+            self.video_writer.write(frame)
+        except Exception as e:
+            self.logger.error(f"프레임 저장 실패: {e}")
+
     def init_from_youtube_url(self, youtube_url, mode='stream', quality='720p'):
         """YouTube URL로부터 초기화 (스트림 모드 또는 다운로드 모드)"""
         if not YT_DLP_AVAILABLE:
@@ -126,8 +193,9 @@ class HybridVideoManager:
                                         'url' in fmt):
                                     self.stream_url = fmt['url']
                                     break
-                            if self.stream_url:
-                                break
+
+                        if self.stream_url:
+                            break
 
                 except Exception as e:
                     continue
@@ -152,6 +220,10 @@ class HybridVideoManager:
             self._setup_video_info(cap, frame)
             self.video_capture = cap
 
+            # ✅ VideoWriter 초기화
+            if not self.init_video_writer(frame.shape):
+                self.logger.warning("VideoWriter 초기화 실패, 저장 없이 진행")
+
             self.logger.info("✅ YouTube 스트림 모드 초기화 완료")
             return True
 
@@ -171,7 +243,6 @@ class HybridVideoManager:
 
             # YouTube 제목으로 파일명 생성
             print("📋 YouTube 영상 정보를 가져오는 중...")
-
             try:
                 with yt_dlp.YoutubeDL({'quiet': True}) as ydl:
                     self.video_info = ydl.extract_info(self.youtube_url, download=False)
@@ -192,7 +263,6 @@ class HybridVideoManager:
                 '480p': 'best[height<=480][ext=mp4]/best[height<=480]',
                 'best': 'best[ext=mp4]/best'
             }
-
             format_selector = quality_map.get(quality, quality_map['720p'])
 
             def progress_hook(d):
@@ -214,7 +284,6 @@ class HybridVideoManager:
                     except KeyboardInterrupt:
                         print(f"\n⚠️ 사용자가 다운로드를 중단했습니다.")
                         raise
-
                 elif d['status'] == 'finished':
                     print(f"\n✅ 다운로드 완료!")
 
@@ -247,7 +316,6 @@ class HybridVideoManager:
             except KeyboardInterrupt:
                 print(f"\n🛑 다운로드가 중단되었습니다.")
                 self._cleanup_temp_files()
-
                 choice = input("🔄 스트림 모드로 전환하시겠습니까? (y/n): ").lower()
                 if choice in ['y', 'yes', '예', '']:
                     print("📡 스트림 모드로 전환합니다...")
@@ -261,7 +329,6 @@ class HybridVideoManager:
 
             # 다운로드 완료 후 정보 표시
             file_size = os.path.getsize(self.temp_file_path) / (1024 * 1024)
-
             print("\n" + "🎉" + "=" * 68 + "🎉")
             print("✅ 다운로드 완료! 이제 MP4 모드로 실행합니다.")
             print(f"📁 저장 위치: {os.path.abspath(self.temp_file_path)}")
@@ -272,7 +339,6 @@ class HybridVideoManager:
             # 다운로드된 파일을 재생 파일로 설정
             self.video_file_path = self.temp_file_path
             self.mode = 'file'  # 모드를 file로 설정하여 시간 조절 활성화
-
             return self._init_file_mode()
 
         except Exception as e:
@@ -301,10 +367,13 @@ class HybridVideoManager:
 
         self.total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         self._setup_video_info(cap, frame)
-
         cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
         self.video_capture = cap
         self.current_frame_idx = 0
+
+        # ✅ VideoWriter 초기화
+        if not self.init_video_writer(frame.shape):
+            self.logger.warning("VideoWriter 초기화 실패, 저장 없이 진행")
 
         self.logger.info("✅ MP4 파일 모드 초기화 완료")
         self.logger.info("✅ 완전한 시간 조절 기능 사용 가능")
@@ -393,6 +462,7 @@ class HybridVideoManager:
         current_time = self.get_current_time()
         target_time = current_time + seconds_delta
         target_time = max(0, min(target_time, self.video_duration))
+
         return self.jump_to_time(target_time)
 
     def get_current_time(self):
@@ -411,6 +481,7 @@ class HybridVideoManager:
             return False, None
 
         ret, frame = self.video_capture.read()
+
         if ret and frame is not None:
             self.current_frame_idx += 1
             return True, frame
@@ -450,8 +521,14 @@ class HybridVideoManager:
 
     def release(self):
         """리소스 해제"""
+        # ✅ VideoWriter 해제 추가
+        if self.video_writer:
+            self.video_writer.release()
+            self.logger.info("✅ 영상 저장 완료")
+
         if self.video_capture:
             self.video_capture.release()
+
         if hasattr(self, 'temp_file_path') and self.temp_file_path:
             self._cleanup_temp_files()
 
@@ -481,17 +558,21 @@ class TimeNavigator:
     def should_show_ui(self):
         if not self.show_navigation_ui:
             return False
+
         if time.time() - self.ui_show_time > self.ui_display_duration:
             self.show_navigation_ui = False
             return False
+
         return True
 
     def format_time(self, seconds):
         if seconds < 0:
             return "00:00"
+
         hours = int(seconds // 3600)
         minutes = int(seconds % 3600) // 60
         secs = int(seconds % 60)
+
         if hours > 0:
             return f"{hours:02d}:{minutes:02d}:{secs:02d}"
         else:
@@ -522,6 +603,7 @@ class LaneDetector:
 
         lines = cv2.HoughLinesP(masked_edges, rho=1, theta=np.pi / 180,
                                 threshold=50, minLineLength=50, maxLineGap=50)
+
         return self.process_lane_lines(lines, width, height)
 
     def process_lane_lines(self, lines, width, height):
@@ -553,33 +635,41 @@ class LaneDetector:
     def average_lane(self, lane_lines, width, height):
         if not lane_lines:
             return None
+
         x_coords, y_coords = [], []
         for x1, y1, x2, y2 in lane_lines:
             x_coords.extend([x1, x2])
             y_coords.extend([y1, y2])
+
         if len(x_coords) < 2:
             return None
+
         poly = np.polyfit(y_coords, x_coords, 1)
         y1 = height
         y2 = int(height * 0.6)
         x1 = int(poly[0] * y1 + poly[1])
         x2 = int(poly[0] * y2 + poly[1])
+
         return [x1, y1, x2, y2]
 
     def calculate_lane_center_points(self, lanes, height):
         if not lanes or (lanes.get('left') is None and lanes.get('right') is None):
             return None
+
         center_points = []
         for y in range(int(height * 0.65), height, 20):
             left_x, right_x = None, None
+
             if lanes.get('left'):
                 x1, y1, x2, y2 = lanes['left']
                 if y2 != y1:
                     left_x = x1 + (x2 - x1) * (y - y1) / (y2 - y1)
+
             if lanes.get('right'):
                 x1, y1, x2, y2 = lanes['right']
                 if y2 != y1:
                     right_x = x1 + (x2 - x1) * (y - y1) / (y2 - y1)
+
             if left_x is not None and right_x is not None:
                 center_x = (left_x + right_x) / 2
             elif left_x is not None:
@@ -588,7 +678,9 @@ class LaneDetector:
                 center_x = right_x - 60
             else:
                 continue
+
             center_points.append((int(center_x), y))
+
         return center_points
 
 
@@ -613,16 +705,20 @@ class ImprovedIOUTracker:
     def calculate_iou(box1, box2):
         x1, y1, w1, h1 = box1
         x2, y2, w2, h2 = box2
+
         x_left = max(x1, x2)
         y_top = max(y1, y2)
         x_right = min(x1 + w1, x2 + w2)
         y_bottom = min(y1 + h1, y2 + h2)
+
         if x_right < x_left or y_bottom < y_top:
             return 0.0
+
         intersection = (x_right - x_left) * (y_bottom - y_top)
         area1 = w1 * h1
         area2 = w2 * h2
         union = area1 + area2 - intersection
+
         return intersection / union if union > 0 else 0.0
 
     def detect_departure_improved(self, track, is_in_zone=False):
@@ -632,6 +728,7 @@ class ImprovedIOUTracker:
         # ✅ 더 짧은 분석 구간
         recent_movements = list(track['movement_history'])[-self.departure_buffer_frames:]
         analysis_frames = recent_movements[:-8] if len(recent_movements) > 8 else recent_movements[:-3]
+
         if not analysis_frames:
             return False
 
@@ -658,14 +755,18 @@ class ImprovedIOUTracker:
 
     def update(self, detections):
         self.frame_count += 1
+
         active_tracks = {tid: tr for tid, tr in self.tracks.items() if tr['lost'] <= self.max_lost}
+
         matched_tracks, matched_dets = set(), set()
 
         for track_id, track in active_tracks.items():
             best_iou, best_idx = 0.0, -1
+
             for i, det in enumerate(detections):
                 if i in matched_dets:
                     continue
+
                 iou = self.calculate_iou(track['bbox'], det['box'])
                 if iou > best_iou and iou > self.iou_threshold:
                     best_iou, best_idx = iou, i
@@ -673,10 +774,12 @@ class ImprovedIOUTracker:
             if best_idx != -1:
                 old_bbox = track['bbox']
                 new_bbox = detections[best_idx]['box']
+
                 old_cx = old_bbox[0] + old_bbox[2] / 2
                 old_cy = old_bbox[1] + old_bbox[3] / 2
                 new_cx = new_bbox[0] + new_bbox[2] / 2
                 new_cy = new_bbox[1] + new_bbox[3] / 2
+
                 movement_x = new_cx - old_cx
                 movement_y = new_cy - old_cy
 
@@ -695,10 +798,12 @@ class ImprovedIOUTracker:
                 matched_tracks.add(track_id)
                 matched_dets.add(best_idx)
 
+        # 매칭되지 않은 기존 트랙 처리
         for track_id, track in active_tracks.items():
             if track_id not in matched_tracks:
                 track['lost'] += 1
 
+        # 새 트랙 생성
         max_history = max(self.departure_buffer_frames + 20, 100)
         for i, det in enumerate(detections):
             if i not in matched_dets:
@@ -717,6 +822,7 @@ class ImprovedIOUTracker:
                 self.next_id += 1
 
         self.tracks = {tid: tr for tid, tr in self.tracks.items() if tr['lost'] <= self.max_lost}
+
         return self.get_active_tracks()
 
     def get_active_tracks(self):
@@ -737,15 +843,18 @@ class TrafficLightColorDetector:
     def detect_traffic_light_color(self, roi):
         if roi.size == 0:
             return None
+
         hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
 
-        red_lower1 = np.array([0, 100, 100]);
+        red_lower1 = np.array([0, 100, 100])
         red_upper1 = np.array([10, 255, 255])
-        red_lower2 = np.array([170, 100, 100]);
+        red_lower2 = np.array([170, 100, 100])
         red_upper2 = np.array([180, 255, 255])
-        yellow_lower = np.array([18, 120, 120]);
+
+        yellow_lower = np.array([18, 120, 120])
         yellow_upper = np.array([35, 255, 255])
-        green_lower = np.array([45, 100, 100]);
+
+        green_lower = np.array([45, 100, 100])
         green_upper = np.array([90, 255, 255])
 
         red_mask = cv2.inRange(hsv, red_lower1, red_upper1) + cv2.inRange(hsv, red_lower2, red_upper2)
@@ -755,37 +864,45 @@ class TrafficLightColorDetector:
         red_pixels = cv2.countNonZero(red_mask)
         yellow_pixels = cv2.countNonZero(yellow_mask)
         green_pixels = cv2.countNonZero(green_mask)
+
         max_pixels = max(red_pixels, yellow_pixels, green_pixels)
 
         if max_pixels < 15:
             return None
+
         if red_pixels == max_pixels:
             return 'red'
         elif yellow_pixels == max_pixels:
             return 'yellow'
         elif green_pixels == max_pixels:
             return 'green'
+
         return None
 
     def update_color_history(self, color):
         if color:
             self.color_history.append(color)
+
             if len(self.color_history) >= self.stability_frames:
                 counts = {}
                 for c in self.color_history:
                     counts[c] = counts.get(c, 0) + 1
+
                 most_common = max(counts, key=counts.get)
                 confidence = counts[most_common] / self.stability_frames
+
                 if confidence >= self.confidence_threshold:
                     if self.last_stable_color != most_common:
                         change_info = {
                             'datetime': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                             'timestamp': time.time()
                         }
+
                         self.previous_color = self.last_stable_color
                         self.last_stable_color = most_common
                         self.last_change_time = time.time()
                         return change_info
+
         return None
 
 
@@ -799,10 +916,10 @@ class HybridBlackBoxSystem:
 
         self.video_manager = HybridVideoManager(self.logger, self.config)
         self.time_navigator = TimeNavigator(self.logger)
+
         self.net = None
         self.classes = []
         self.output_layers = []
-
         self.running = False
         self.current_frame = None
         self.paused = False
@@ -814,9 +931,11 @@ class HybridBlackBoxSystem:
             movement_threshold=float(self.config.get('tracking', {}).get('movement_threshold', 1.5)),
             expected_fps=expected_fps
         )
+
         self.traffic_light_detector = TrafficLightColorDetector(
             stability_frames=int(self.config.get('traffic_light', {}).get('stability_frames', 2))
         )
+
         self.lane_detector = LaneDetector()
 
         self.detection_stats = {
@@ -866,7 +985,8 @@ class HybridBlackBoxSystem:
             "video_mode": {
                 "loop": True,
                 "speed": 1.0,
-                "save_result": True
+                "save_result": True,
+                "fps": 30  # ✅ VideoWriter용 FPS 설정 추가
             },
             "model": {
                 "weights_path": "yolov4-tiny.weights",
@@ -934,8 +1054,8 @@ class HybridBlackBoxSystem:
     def get_user_choice(self):
         """✅ 간소화된 사용자 선택 (MP4 직접 선택 제거)"""
         print("\n" + "=" * 80)
-        print("     🎬 하이브리드 블랙박스 시스템 v4.3")
-        print("     YouTube URL + Downloads 폴더 통합 관리")
+        print("   🎬 하이브리드 블랙박스 시스템 v4.4")
+        print("   YouTube URL + Downloads 폴더 통합 관리 + mp4_output 저장")
         print("=" * 80)
 
         self.show_downloads_folder_info()
@@ -948,6 +1068,7 @@ class HybridBlackBoxSystem:
                 print("3) Downloads 폴더 파일 선택 (다운로드된 영상 + 수동으로 넣은 MP4)")
                 print("4) 종료")
                 print(f"\n💡 팁: MP4 파일을 ./downloads 폴더에 넣으면 3번에서 선택할 수 있습니다!")
+                print(f"📁 영상 저장: ./mp4_output 폴더에 자동 저장됩니다!")
 
                 choice = input("\n선택하세요 (1-4): ").strip()
 
@@ -974,6 +1095,7 @@ class HybridBlackBoxSystem:
         print("\n📡 YouTube 스트림 모드")
         print("✅ 장점: 빠른 시작, 네트워크 절약")
         print("⚠️ 단점: 시간 조절 제한")
+        print("💾 저장: mp4_output 폴더에 자동 저장")
 
         youtube_url = self.get_youtube_url()
         if not youtube_url:
@@ -987,6 +1109,7 @@ class HybridBlackBoxSystem:
         print("✅ 장점: 완전한 시간 조절, 화살표 키 지원")
         print("⚠️ 단점: 다운로드 시간 필요")
         print("💡 중단: 다운로드 중 Ctrl+C로 언제든지 중단 가능")
+        print("💾 저장: downloads + mp4_output 양쪽 모두 저장")
 
         youtube_url = self.get_youtube_url()
         if not youtube_url:
@@ -1002,7 +1125,6 @@ class HybridBlackBoxSystem:
             try:
                 quality_choice = input("품질 선택 (Enter=720p): ").strip() or '1'
                 quality_map = {'1': '720p', '2': '1080p', '3': '480p', '4': 'best'}
-
                 if quality_choice in quality_map:
                     quality = quality_map[quality_choice]
                     break
@@ -1041,6 +1163,7 @@ class HybridBlackBoxSystem:
 
         print(f"\n📁 Downloads 폴더: {os.path.abspath(download_dir)}")
         print("📹 사용 가능한 영상 (다운로드 + 수동 추가):")
+        print("💾 선택한 영상은 mp4_output 폴더에도 저장됩니다!")
 
         for i, file in enumerate(mp4_files, 1):
             file_path = os.path.join(download_dir, file)
@@ -1069,7 +1192,6 @@ class HybridBlackBoxSystem:
                         print(f"❌ 1-{len(mp4_files)} 범위에서 선택해주세요.")
                 except ValueError:
                     print("❌ 숫자를 입력해주세요.")
-
         except KeyboardInterrupt:
             return None
 
@@ -1082,7 +1204,6 @@ class HybridBlackBoxSystem:
         while True:
             try:
                 youtube_url = input("YouTube URL 입력 (Enter=기본값): ").strip()
-
                 if not youtube_url and default_url:
                     youtube_url = default_url
                 elif not youtube_url:
@@ -1093,7 +1214,6 @@ class HybridBlackBoxSystem:
                     return youtube_url
                 else:
                     print("❌ 올바른 YouTube URL을 입력해주세요.")
-
             except KeyboardInterrupt:
                 return None
 
@@ -1164,6 +1284,27 @@ class HybridBlackBoxSystem:
 
         return filtered
 
+    def filter_traffic_light_detections(self, detections):
+        """✅ 신호등 오탐지 필터링 - 세로로 긴 박스 제거"""
+        filtered = []
+
+        for det in detections:
+            if det['class_name'] != 'traffic light':
+                filtered.append(det)
+                continue
+
+            x, y, w, h = det['box']
+            aspect_ratio = w / h if h > 0 else 0
+
+            # 가로세로 비율이 0.3 이상인 신호등만 유효 (세로로 너무 긴 것 제외)
+            # 일반적인 신호등은 가로가 세로보다 길거나 비슷함
+            if aspect_ratio >= 0.3:
+                filtered.append(det)
+            else:
+                self.logger.debug(f"세로형 신호등 필터링: 비율={aspect_ratio:.2f}")
+
+        return filtered
+
     def detect_objects_optimized(self, frame):
         """최적화된 객체 감지"""
         start_time = time.time()
@@ -1185,12 +1326,16 @@ class HybridBlackBoxSystem:
                 scores = detection[5:]
                 if scores.size == 0:
                     continue
+
                 class_id = int(np.argmax(scores))
                 if class_id < 0 or class_id >= len(self.classes):
                     continue
+
                 confidence = float(scores[class_id])
                 class_name = self.classes[class_id]
+
                 min_conf = tl_conf_th if class_name == 'traffic light' else conf_th
+
                 if confidence > min_conf:
                     cx = int(detection[0] * width)
                     cy = int(detection[1] * height)
@@ -1198,13 +1343,14 @@ class HybridBlackBoxSystem:
                     h = int(detection[3] * height)
                     x = int(cx - w / 2)
                     y = int(cy - h / 2)
+
                     boxes.append([x, y, w, h])
                     confidences.append(confidence)
                     class_ids.append(class_id)
 
         indexes = cv2.dnn.NMSBoxes(boxes, confidences, conf_th, nms_th)
-        detections, vehicle_dets, tl_dets = [], [], []
 
+        detections, vehicle_dets, tl_dets = [], [], []
         if len(indexes) > 0:
             for i in indexes.flatten():
                 class_name = self.classes[class_ids[i]]
@@ -1214,6 +1360,7 @@ class HybridBlackBoxSystem:
                     'box': boxes[i],
                     'timestamp': time.time()
                 }
+
                 detections.append(det)
 
                 if class_name == 'traffic light':
@@ -1224,27 +1371,33 @@ class HybridBlackBoxSystem:
                     vehicle_dets.append(det)
                     self.detection_stats['vehicles'] += 1
 
-            self.detection_stats['total_detections'] += len(indexes)
+        self.detection_stats['total_detections'] += len(indexes) if len(indexes) > 0 else 0
 
         processing_time = time.time() - start_time
         self.processing_times.append(processing_time)
 
+        # ✅ 신호등 오탐지 필터링 적용
+        filtered_detections = self.filter_traffic_light_detections(detections)
+        filtered_tl_dets = [d for d in filtered_detections if d['class_name'] == 'traffic light']
+
         filtered_vehicle_dets = self.filter_vehicles_by_lane(vehicle_dets, width, height, frame)
         tracked_vehicles = self.vehicle_tracker.update(filtered_vehicle_dets) if filtered_vehicle_dets else []
 
-        if tl_dets and self.config['traffic_light']['enable_detection']:
-            self.analyze_traffic_light_colors_fast(frame, tl_dets)
+        if filtered_tl_dets and self.config['traffic_light']['enable_detection']:
+            self.analyze_traffic_light_colors_fast(frame, filtered_tl_dets)
 
-        return detections, tracked_vehicles
+        return filtered_detections, tracked_vehicles
 
     def analyze_traffic_light_colors_fast(self, frame, tl_detections):
         for det in tl_detections:
             x, y, w, h = det['box']
             roi = frame[max(0, y):min(frame.shape[0], y + h),
                   max(0, x):min(frame.shape[1], x + w)]
+
             if roi.size > 100:
                 detected_color = self.traffic_light_detector.detect_traffic_light_color(roi)
                 change = self.traffic_light_detector.update_color_history(detected_color)
+
                 if change:
                     self.handle_traffic_light_change(change)
 
@@ -1264,6 +1417,7 @@ class HybridBlackBoxSystem:
     def _tts_announce_if_needed(self, msg):
         if not self.tts_system:
             return
+
         msg_hash = hashlib.md5(msg.encode()).hexdigest()
         if msg in self.TTS_ALLOWED and msg_hash not in self.tts_message_hashes:
             try:
@@ -1291,9 +1445,10 @@ class HybridBlackBoxSystem:
             if lanes.get('right'):
                 x1, y1, x2, y2 = lanes['right']
                 cv2.line(overlay, (x1, y1), (x2, y2), (0, 255, 0), 2)
-            if center_points:
-                for i in range(len(center_points) - 1):
-                    cv2.line(overlay, center_points[i], center_points[i + 1], (0, 255, 255), 3)
+
+        if center_points:
+            for i in range(len(center_points) - 1):
+                cv2.line(overlay, center_points[i], center_points[i + 1], (0, 255, 255), 3)
 
         # 검출된 차량들 표시
         for detection in detections:
@@ -1313,7 +1468,6 @@ class HybridBlackBoxSystem:
                     }
                     color = colors.get(class_name, (0, 255, 0))
                     cv2.rectangle(overlay, (x, y), (x + w, y + h), color, 2)
-
                     conf_text = f"{class_name}: {confidence:.2f}"
                     cv2.putText(overlay, conf_text, (x, y - 5),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.4, color, 1)
@@ -1342,8 +1496,8 @@ class HybridBlackBoxSystem:
                 status_text = "WAITING"
 
             cv2.rectangle(overlay, (x, y), (x + w, y + h), track_color, 3)
-
             id_text = f"ID-{track_id} ({status_text})"
+
             (text_w, text_h), _ = cv2.getTextSize(id_text, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
             cv2.rectangle(overlay, (x, y - text_h - 8), (x + text_w + 10, y), (0, 0, 0), -1)
             cv2.rectangle(overlay, (x, y - text_h - 8), (x + text_w + 10, y), track_color, 2)
@@ -1360,7 +1514,7 @@ class HybridBlackBoxSystem:
         # 모드별 정보 표시
         if mode_info['mode'] == 'stream':
             # ✅ 스트림 모드: 최소한의 정보만
-            mode_text = "YouTube Live Stream"
+            mode_text = "YouTube Live Stream → mp4_output"
             cv2.putText(overlay, mode_text, (15, 20),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
 
@@ -1382,9 +1536,9 @@ class HybridBlackBoxSystem:
             cv2.putText(overlay, time_text, (15, 40),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1)
 
-            # 시간 조절 UI (파일 모드에서만)
-            if self.time_navigator.should_show_ui():
-                self.draw_time_navigation_overlay(overlay, width, height)
+        # 시간 조절 UI (파일 모드에서만)
+        if self.time_navigator.should_show_ui():
+            self.draw_time_navigation_overlay(overlay, width, height)
 
         # 차량 감지 상태 (우측 상단)
         waiting_vehicles = len([t for t in tracked_vehicles if not t.get('is_moving', False)])
@@ -1426,7 +1580,6 @@ class HybridBlackBoxSystem:
         nav_overlay = overlay.copy()
         cv2.rectangle(nav_overlay, (50, nav_y), (width - 50, nav_y + nav_height), (0, 0, 0), -1)
         cv2.addWeighted(overlay, 0.7, nav_overlay, 0.3, 0, overlay)
-
         cv2.rectangle(overlay, (50, nav_y), (width - 50, nav_y + nav_height), (0, 255, 255), 2)
 
         cv2.putText(overlay, "TIME NAVIGATION", (60, nav_y + 25),
@@ -1530,7 +1683,7 @@ class HybridBlackBoxSystem:
 
         if self.config['display'].get('show_preview', True):
             mode_info = self.video_manager.get_mode_info()
-            window_name = f"Hybrid BlackBox - {mode_info['mode'].title()} Mode"
+            window_name = f"Hybrid BlackBox - {mode_info['mode'].title()} Mode → mp4_output"
             cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
 
             window_w = self.config['display'].get('window_width', 1280)
@@ -1543,6 +1696,7 @@ class HybridBlackBoxSystem:
         mode_info = self.video_manager.get_mode_info()
         self.logger.info(f"🎬 하이브리드 블랙박스 시작 ({mode_info['mode']} 모드)")
         self.logger.info(f"✅ 시간 조절: {'가능' if mode_info['can_seek'] else '불가능'}")
+        self.logger.info(f"💾 영상 저장: mp4_output 폴더")
 
         try:
             while self.running:
@@ -1569,6 +1723,10 @@ class HybridBlackBoxSystem:
                     # ✅ 최적화된 오버레이 적용
                     overlay_frame = self.draw_optimized_overlay(frame.copy(), detections, tracked_vehicles)
 
+                    # ✅ mp4_output에 프레임 저장
+                    self.video_manager.write_frame(overlay_frame)
+
+                    # 차량 출발 감지 처리
                     for track in tracked_vehicles:
                         if track.get('departure_detected', False) and not track.get('logged', False):
                             self.log_vehicle_departure(track)
@@ -1577,19 +1735,23 @@ class HybridBlackBoxSystem:
                     frame_count += 1
 
                 else:
+                    # 일시정지 상태에서도 현재 프레임 표시
                     if self.current_frame is not None:
                         overlay_frame = self.draw_optimized_overlay(self.current_frame.copy(), [], [])
                     else:
                         time.sleep(0.1)
                         continue
 
+                # 화면 표시
                 if self.config['display'].get('show_preview', True):
                     cv2.imshow(window_name, overlay_frame)
 
-                    key = cv2.waitKeyEx(1)
-                    if self.handle_keyboard_input(key):
-                        break
+                # 키보드 입력 처리
+                key = cv2.waitKeyEx(1)
+                if self.handle_keyboard_input(key):
+                    break
 
+                # 프레임 딜레이 (일시정지가 아닐 때만)
                 if not self.paused:
                     time.sleep(frame_delay)
 
@@ -1603,6 +1765,8 @@ class HybridBlackBoxSystem:
         return True
 
     def signal_handler(self, signum, frame):
+        """시그널 핸들러"""
+        self.logger.info(f"시그널 {signum} 수신, 정상 종료합니다")
         self.running = False
         self.cleanup_resources()
         sys.exit(0)
@@ -1610,22 +1774,30 @@ class HybridBlackBoxSystem:
     def cleanup_resources(self):
         """리소스 정리"""
         try:
-            self.video_manager.release()
+            self.running = False
+
+            # ✅ VideoWriter 해제 (mp4_output 저장 완료)
+            if self.video_manager:
+                self.video_manager.release()
+
             cv2.destroyAllWindows()
+
             if hasattr(self, 'tts_system') and self.tts_system:
                 self.tts_system.shutdown()
+
         except Exception as e:
             self.logger.error(f"리소스 정리 실패: {e}")
 
 
 def main():
-    parser = argparse.ArgumentParser(description='하이브리드 블랙박스 시스템 v4.3 - 최적화판')
+    parser = argparse.ArgumentParser(description='하이브리드 블랙박스 시스템 v4.4 - 신호등 오탐지 해결 + mp4_output 저장')
     parser.add_argument('--config', default='hybrid_blackbox_config.json', help='설정 파일 경로')
     parser.add_argument('--mode', choices=['stream', 'download', 'file'], help='실행 모드')
     parser.add_argument('--url', help='YouTube URL')
     parser.add_argument('--file', help='MP4 파일 경로')
     parser.add_argument('--quality', default='720p', choices=['480p', '720p', '1080p', 'best'], help='다운로드 품질')
     parser.add_argument('--debug', action='store_true', help='디버그 모드')
+
     args = parser.parse_args()
 
     if not YT_DLP_AVAILABLE:
@@ -1636,6 +1808,7 @@ def main():
     try:
         blackbox = HybridBlackBoxSystem(args.config)
 
+        # 명령행 인수로 모드 지정 시
         if args.mode:
             if args.mode in ['stream', 'download']:
                 if not args.url:
@@ -1656,6 +1829,7 @@ def main():
         return 0 if success else 1
 
     except KeyboardInterrupt:
+        print("\n👋 프로그램이 사용자에 의해 중단되었습니다.")
         return 0
     except Exception as e:
         if args.debug:
