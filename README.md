@@ -1,8 +1,8 @@
 # 🚗 AI 스마트 블랙박스 시스템
 
-<img src="https://github.com/user-attachments/assets/5129212e-a56d-4a65-9e91-40769a18b2fb" width="350"/>
+![hybrid_blackbox_20250814_155240](https://github.com/user-attachments/assets/55caa8fc-b178-4640-9e15-2ad3bab294ad)
 
-<img src="https://github.com/user-attachments/assets/95b3667e-6938-45e2-a393-8460dc290677" width="350"/>
+![hybrid_blackbox_20250814_155240 (1)](https://github.com/user-attachments/assets/f832f5c1-f685-4ade-97a5-10bc61b4dd2e)
 
 <img width="1375" height="635" alt="static" src="https://github.com/user-attachments/assets/1942ccea-6a6c-4109-a07f-8d13d3842640" />
 <img width="1395" height="784" alt="moving" src="https://github.com/user-attachments/assets/8998dae5-9b65-415e-8f68-ea4b07dda6a7" />
