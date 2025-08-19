@@ -187,4 +187,183 @@ python hybrid_blackbox.py --config hybrid_blackbox_config.json
 ```
 
 ### YouTube/MP4 분석 모드
-화살표 키 등으로 시간 조절하며 영상 분석하여
+화살표 키 등으로 시간 조절하며 영상 분석하여 출발 패턴 학습
+
+---
+
+## ⚙️ 설정
+
+### PC/웹캠 설정 (`webcam_blackbox_config.json`)
+
+```json
+{
+  "camera": {
+    "device_id": 0,
+    "width": 1280,
+    "height": 720,
+    "fps": 30
+  },
+  "detection": {
+    "detection_interval": 1,
+    "confidence_threshold": 0.5
+  }
+}
+```
+
+### 라즈베리파이 설정 (`raspberrypi_blackbox_config.json`)
+
+```json
+{
+  "camera": {
+    "device_id": "auto",
+    "width": 1280,
+    "height": 720,
+    "fps": 30,
+    "buffer_size": 1
+  },
+  "detection": {
+    "detection_interval": 2,
+    "confidence_threshold": 0.5
+  }
+}
+```
+
+### 하이브리드 설정 (`hybrid_blackbox_config.json`)
+
+```json
+{
+  "youtube": {
+    "url": "your_default_url",
+    "quality": "720p"
+  },
+  "tracking": {
+    "movement_threshold": 1.5,
+    "iou_threshold": 0.25
+  }
+}
+```
+
+---
+
+## 🎛️ 키 조작법
+
+### 웹캠 실시간 모드
+- `[SPACE]`: 일시정지/재생 토글
+- `[S]`: 현재 화면 스크린샷 저장
+- `[Q]`: 프로그램 종료
+- `[ESC]`: 긴급 종료
+- `[R]`: 웹캠 재연결
+
+### YouTube/MP4 분석 모드
+- `[←/→]`: 10초 이동
+- `[↑/↓]`: 1분 이동
+- `[SPACE]`: 일시정지/재생
+- `[S]`: 스크린샷 저장
+- `[Q/ESC]`: 종료
+
+---
+
+## 🎯 핵심 알고리즘 파라미터
+
+```python
+출발감지_대기시간 = 1초      # 2초 → 1초 단축
+정지상태_판정기준 = 2.5픽셀  # 1.5px → 2.5px 완화
+정지비율_임계값 = 50%        # 70% → 50% 완화
+움직임감지_임계값 = 2.25픽셀 # 4px → 2.25px 민감화
+```
+
+### 🚦 신호등 HSV 색상 범위 (한국 신호등 최적화)
+
+```python
+빨간불: [0-10, 170-180] + [100-255, 100-255]
+노란불: [18-35] + [120-255, 120-255]
+초록불: [45-90] + [100-255, 100-255]
+```
+
+### 🛣️ 차선 감지 알고리즘
+
+- **Canny Edge Detection** → 차선 엣지 추출
+- **Hough Transform** → 직선 패턴 감지
+- **동적 ROI** → 화면 하단 65% 영역 집중 분석
+- **중심점 계산** → 좌우 차선 중심의 Front Zone 설정
+
+---
+
+## 📊 성능 정보
+
+| 해상도      | CPU 사용률 | 평균 FPS | 감지 지연   |
+|-------------|------------|----------|-------------|
+| 640x480     | 약 30%     | 28-30    | 0.1초 미만  |
+| 1280x720    | 약 45%     | 25-28    | 0.2초 미만  |
+| 1920x1080   | 약 65%     | 20-25    | 0.3초 미만  |
+
+---
+
+## 🔧 문제해결
+
+### 일반적인 문제들
+
+- **모델 파일 없음 오류**  
+  `FileNotFoundError: yolov4-tiny.weights`  
+  → 반드시 yolov4-tiny.weights, cfg, coco.names 다운 및 올바른 위치 지정
+
+- **웹캠 연결 실패**  
+  `cv2.error: Cannot open camera`  
+  → `webcam_blackbox_config.json`에서 `device_id` 변경하거나 장치 상태 확인
+
+- **성능 저하 문제**  
+  → 해상도 및 FPS 낮추거나 `detection_interval` 증가로 AI 분석 주기 조절
+
+- **YouTube 다운로드 오류**  
+  → `pip install --upgrade yt-dlp` 실행
+
+---
+
+## 🛠️ 개발 정보
+
+### 최근 업데이트 (v2.0, 2025년)
+
+- 강화된 USB 모니터링 및 긴급종료 키(`ESC`, `Q`) 추가
+- 하이브리드 시스템: YouTube + MP4 통합
+- 출발감지 최적화: 1초 대기, 50% 정지율
+- Downloads 폴더 통합 관리
+
+### 향후 계획
+
+- GPU 가속 (CUDA/OpenCL)
+- 클라우드 연동 (AWS, GCP)
+- 모바일 앱 원격 제어
+- 다중 카메라 동시 처리
+- 고급 AI 기능 (차선 변경 감지, 졸음운전 감지 등)
+
+---
+
+## 🤝 기여하기
+
+1. 프로젝트 Fork
+2. Feature Branch 생성 (`git checkout -b feature/AmazingFeature`)
+3. 커밋 (`git commit -m 'Add some AmazingFeature'`)
+4. 브랜치 푸시 (`git push origin feature/AmazingFeature`)
+5. Pull Request 생성
+
+### 🐛 버그 리포트
+
+Issues 탭에 OS, Python 버전, 에러 메시지 전체, 재현 단계 포함해 제출해주세요.
+
+---
+
+## 📞 연락처
+
+- 이메일: [ojt8416@gmail.com](mailto:ojt8416@gmail.com)
+- GitHub Issues: [링크](https://github.com/juntaek-oh/Blackbox/issues)
+
+---
+
+<div align="center">
+
+## 🚗 안전한 운전의 시작, AI 블랙박스 시스템과 함께하세요! 🚗
+**실시간 차량 추적과 앞차 출발 감지를 합리적 성능과 사용성으로 구현한 스마트 AI 블랙박스**
+
+⭐ 도움 되셨다면 Star 부탁드립니다! ⭐
+
+</div>
