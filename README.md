@@ -84,8 +84,6 @@
 🔴 실시간 모드: 웹캠 → AI 분석 → TTS 알림
 📺 분석 모드: YouTube/MP4 → 시간 조절 → AI 분석
 
-text
-
 ---
 
 ### 📁 프로젝트 구조
@@ -105,8 +103,6 @@ Blackbox/
 ├── webcam_output/ # 녹화 파일 (자동 생성)
 ├── log/ # 로그 파일 (자동 생성)
 ├── model/ # YOLO 가중치 및 설정 파일
-
-text
 
 ---
 
@@ -129,12 +125,10 @@ text
 git clone https://github.com/juntaek-oh/Blackbox.git
 cd Blackbox
 
-text
 
 2. 의존성 설치  
 pip install -r requirements.txt
 
-text
 
 3. AI 모델 다운로드 및 위치 지정  
 wget https://github.com/AlexeyAB/darknet/releases/download/yolov4/yolov4-tiny.weights
@@ -142,7 +136,6 @@ wget https://raw.githubusercontent.com/AlexeyAB/darknet/master/cfg/yolov4-tiny.c
 wget https://raw.githubusercontent.com/AlexeyAB/darknet/master/data/coco.names
 
 다운로드한 파일은 ./model/ 폴더에 저장
-text
 
 4. 설정 파일 환경별 수정  
 - PC/웹캠: `webcam_blackbox_config.json`  
@@ -156,17 +149,14 @@ text
 - PC/웹캠 실시간 모드  
 python black_box_webcam.py --config webcam_blackbox_config.json
 
-text
 
 - Raspberry Pi v4l2 실시간 모드  
 python black_box_raspberrypi.py --config raspberrypi_blackbox_config.json
 
-text
 
 - YouTube/MP4 분석 모드  
 python hybrid_blackbox.py --config hybrid_blackbox_config.json
 
-text
 
 ---
 
@@ -189,7 +179,6 @@ text
 └─────────────────────────────────────────────┘
 [SPACE] 일시정지 [S] 스크린샷 [Q] 종료
 
-text
 
 - [SPACE]: 일시정지/재생 토글  
 - [S]: 현재 화면 스크린샷 저장  
@@ -219,7 +208,6 @@ text
 }
 }
 
-text
 
 ### 라즈베리파이 설정 (`raspberrypi_blackbox_config.json`)
 
@@ -237,8 +225,6 @@ text
 }
 }
 
-text
-
 ### 하이브리드 설정 (`hybrid_blackbox_config.json`)
 
 {
@@ -252,7 +238,6 @@ text
 }
 }
 
-text
 
 ---
 
@@ -263,8 +248,6 @@ text
 정지비율_임계값 = 50% # 70% → 50% 완화
 움직임감지_임계값 = 2.25픽셀 # 4px → 2.25px 민감화
 
-text
-
 ---
 
 ## 🚦 신호등 HSV 색상 범위 (한국 신호등 최적화)
@@ -272,8 +255,6 @@ text
 빨간불: [0-10, 170-180] + [100-255, 100-255]
 노란불: [18-35] + [120-255, 120-255]
 초록불: [45-90] + [100-255, 100-255]
-
-text
 
 ---
 
