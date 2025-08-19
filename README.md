@@ -89,20 +89,21 @@
 ### 📁 프로젝트 구조
 
 Blackbox/
-├── black_box_webcam.py # PC/웹캠 실시간 모드
-├── black_box_raspberrypi.py # 라즈베리파이 v4l2 최적화 모드
-├── hybrid_blackbox.py # YouTube/MP4 분석 모드
-├── tts_config.py # TTS 음성 설정
-├── tts_settings.py # TTS 세부 설정
-├── webcam_blackbox_config.json # PC/웹캠 설정
+├── black_box_webcam.py            # PC/웹캠 실시간 모드
+├── black_box_raspberrypi.py       # 라즈베리파이 v4l2 최적화 모드
+├── hybrid_blackbox.py             # YouTube/MP4 분석 모드
+├── tts_config.py                  # TTS 음성 설정
+├── tts_settings.py                # TTS 세부 설정
+├── webcam_blackbox_config.json    # PC/웹캠 설정
 ├── raspberrypi_blackbox_config.json # 라즈베리파이 설정
-├── hybrid_blackbox_config.json # 하이브리드 설정
-├── requirements.txt # 의존성 패키지
-├── README.md # 설명 문서
-├── downloads/ # 다운로드된 영상 (자동 생성)
-├── webcam_output/ # 녹화 파일 (자동 생성)
-├── log/ # 로그 파일 (자동 생성)
-├── model/ # YOLO 가중치 및 설정 파일
+├── hybrid_blackbox_config.json    # 하이브리드 설정
+├── requirements.txt               # 의존성 패키지
+├── README.md                     # 설명 문서
+├── downloads/                    # 다운로드된 영상 (자동 생성)
+├── webcam_output/                # 녹화 파일 (자동 생성)
+├── log/                         # 로그 파일 (자동 생성)
+├── model/                       # YOLO 가중치 및 설정 파일
+
 
 ---
 
