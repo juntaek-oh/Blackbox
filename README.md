@@ -82,9 +82,48 @@
 
 ## 🏗️ 시스템 아키텍처
 
-```
-🔴 실시간 모드: 웹캠 → AI 분석 → TTS 알림
-📺 분석 모드: YouTube/MP4 → 시간 조절 → AI 분석
+```mermaid
+graph TB
+    subgraph "Input Sources"
+        A[웹캠/USB 카메라]
+        B[YouTube URL]
+        C[MP4 파일]
+        D[라즈베리파이 v4l2]
+    end
+    
+    subgraph "AI Processing Engine"
+        E[YOLOv4-tiny<br/>차량 감지]
+        F[IoU Algorithm<br/>차량 추적]
+        G[차선 감지<br/>Canny + Hough]
+        H[신호등 인식<br/>HSV 필터링]
+    end
+    
+    subgraph "Analysis & Decision"
+        I[ROI 동적 계산]
+        J[출발 상태 판정]
+        K[TTS 알림 생성]
+    end
+    
+    subgraph "Output & Storage"
+        L[실시간 화면 출력]
+        M[10분 세그먼트 녹화]
+        N[로그 기록]
+        O[스크린샷 저장]
+    end
+    
+    A --> E
+    B --> E  
+    C --> E
+    D --> E
+    E --> F --> I
+    E --> G --> I
+    E --> H --> J
+    I --> J --> K
+    J --> L
+    J --> M
+    K --> L
+    L --> N
+    L --> O
 ```
 
 ### 📁 프로젝트 구조
