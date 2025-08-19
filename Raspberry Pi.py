@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-IoU 기반 차량 추적 블랙박스 시스템 v8.1 + TTS 최적화
-v4l2 자동 실행 + 한국 신호등 최적화 + 차선 기반 동적 앞차 감지
-"""
+
 
 import cv2
 import numpy as np
@@ -946,4 +943,5 @@ def main():
 
 
 if __name__ == "__main__":
+
     sys.exit(main())
