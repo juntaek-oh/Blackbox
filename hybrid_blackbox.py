@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-하이브리드 블랙박스 시스템 v4.4 - 신호등 오탐지 해결 + mp4_output 저장 추가
-YouTube URL + Downloads 폴더 통합 + 모드별 최적화 UI + 빠른 출발 감지
-"""
+
 
 import cv2
 import numpy as np
@@ -1842,3 +1839,4 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
+
